@@ -325,4 +325,8 @@ public interface ConfigurationOptions {
     /** Security options **/
     String ES_SECURITY_AUTHENTICATION = "es.security.authentication";
     String ES_SECURITY_USER_PROVIDER_CLASS = "es.security.user.provider.class";
+
+    /** Metrics **/
+    String ES_METRICS_PREFIX = "es.metrics.prefix";
+    String ES_METRICS_PREFIX_DEFAULT = "";
 }

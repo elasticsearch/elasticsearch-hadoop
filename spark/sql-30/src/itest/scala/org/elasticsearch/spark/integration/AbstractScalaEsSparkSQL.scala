@@ -98,6 +98,7 @@ import org.elasticsearch.hadoop.serialization.JsonUtils
 import org.elasticsearch.hadoop.util.EsMajorVersion
 import org.junit.Assert._
 import org.junit.ClassRule
+import org.elasticsearch.spark.acc.EsSparkAccumulators
 
 object AbstractScalaEsScalaSparkSQL {
 
@@ -2663,6 +2664,49 @@ class AbstractScalaEsScalaSparkSQL(prefix: String, readMetadata: jl.Boolean, pus
     val df = sqc.read.format("es").load(index)
     RestUtils.refresh(index)
     df.count()
+  }
+
+  @Test
+  def testSparkAccumulators() = {
+    def config(metricsPrefix: String): Map[String, String] = {
+      val index = wrapIndex(s"spark-test-accumulators-${metricsPrefix}")
+      val typename = "data"
+      val target = resource(index, typename, version)
+      Map[String, String](
+        ES_RESOURCE_READ -> target,
+        ES_RESOURCE_WRITE -> target,
+        ES_METRICS_PREFIX -> metricsPrefix
+      )
+    }
+
+    val data = Seq(
+      Row("doc1"),
+      Row("doc2"),
+      Row("doc3")
+    )
+    val inputRdd = sc.makeRDD(data)
+    val schema = new StructType()
+      .add("field1", StringType, nullable = false)
+    val df = sqc.createDataFrame(inputRdd, schema)
+
+    df.saveToEs(config("single-write"))
+
+    val doubleWritesConfig = config("double-write")
+    df.saveToEs(doubleWritesConfig)
+    df.saveToEs(doubleWritesConfig)
+
+    val readWriteConfig = config("read-write")
+    df.saveToEs(readWriteConfig)
+    val outputDf = sqc.esDF(readWriteConfig)
+
+    import org.elasticsearch.hadoop.mr.Counter._
+    assertEquals(inputRdd.count(), EsSparkAccumulators.get("single-write", DOCS_SENT))
+    assertEquals(inputRdd.count() * 2, EsSparkAccumulators.get("double-write", DOCS_SENT))
+    assertEquals(inputRdd.count(), EsSparkAccumulators.get("read-write", DOCS_SENT))
+    assertEquals(0, EsSparkAccumulators.get("read-write", DOCS_RECEIVED)) // lazy reads before the action count
+    assertEquals(outputDf.count(), EsSparkAccumulators.get("read-write", DOCS_RECEIVED))
+    assertEquals(outputDf.count() * 2, EsSparkAccumulators.get("read-write", DOCS_RECEIVED))
+    EsSparkAccumulators.clear()
   }
 
   /**

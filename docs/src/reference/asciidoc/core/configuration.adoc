@@ -460,6 +460,13 @@ compared to jobs executed against a fully green or yellow cluster. Use this sett
 caution.
 
 [float]
+==== Metrics
+
+added[8.12]
+`es.metrics.prefix` (default empty)::
+Only useful for the Spark metrics. When given the set of reported metrics will start by this prefix with a dot separator.
+
+[float]
 ==== Input
 
 added[5.0.0]

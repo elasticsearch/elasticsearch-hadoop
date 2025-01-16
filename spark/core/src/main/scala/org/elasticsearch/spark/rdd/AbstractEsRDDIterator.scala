@@ -24,6 +24,7 @@ import org.apache.spark.TaskKilledException
 import org.elasticsearch.hadoop.cfg.Settings
 import org.elasticsearch.hadoop.rest.RestService
 import org.elasticsearch.hadoop.rest.PartitionDefinition
+import org.elasticsearch.spark.acc.EsSparkAccumulators
 
 import java.util.Locale
 
@@ -41,9 +42,10 @@ private[spark] abstract class AbstractEsRDDIterator[T](
 
   private var initialized = false;
 
-  lazy val reader = {
+  private val settings = partition.settings()
+
+  private val reader = {
      initialized = true
-     val settings = partition.settings()
 
      // initialize mapping/ scroll reader
      initReader(settings, log)
@@ -56,7 +58,10 @@ private[spark] abstract class AbstractEsRDDIterator[T](
   }
 
   // Register an on-task-completion callback to close the input stream.
-  CompatUtils.addOnCompletition(context, () => closeIfNeeded())
+  CompatUtils.addOnCompletition(context, () => {
+    EsSparkAccumulators.add(reader.stats(), settings.getMetricsPrefix)
+    closeIfNeeded()
+  })
 
   def hasNext: Boolean = {
     if (CompatUtils.isInterrupted(context)) {

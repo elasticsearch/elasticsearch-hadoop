@@ -19,6 +19,7 @@
 package org.elasticsearch.spark.rdd;
 
 import JDKCollectionConvertersCompat.Converters._
+
 import scala.reflect.ClassTag
 import org.apache.commons.logging.LogFactory
 import org.apache.spark.Partition
@@ -31,6 +32,7 @@ import org.elasticsearch.hadoop.rest.PartitionDefinition
 import org.elasticsearch.hadoop.util.ObjectUtils
 import org.elasticsearch.spark.cfg.SparkSettingsManager
 import org.elasticsearch.hadoop.rest.RestRepository
+import org.elasticsearch.spark.acc.EsSparkAccumulators
 
 import scala.annotation.meta.param
 
@@ -66,6 +68,8 @@ private[spark] abstract class AbstractEsRDD[T: ClassTag](
       repo.close()
     }
   }
+
+  EsSparkAccumulators.build(sc, esCfg.getMetricsPrefix)
 
   @transient private[spark] lazy val esCfg = {
     val cfg = new SparkSettingsManager().load(sc.getConf).copy();

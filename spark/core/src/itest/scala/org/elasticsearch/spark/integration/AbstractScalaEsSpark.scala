@@ -51,6 +51,7 @@ import org.elasticsearch.hadoop.util.EsMajorVersion
 import org.elasticsearch.hadoop.util.StringUtils
 import org.elasticsearch.hadoop.util.TestSettings
 import org.elasticsearch.hadoop.util.TestUtils
+import org.elasticsearch.spark.acc.EsSparkAccumulators
 import org.elasticsearch.spark.rdd.EsSpark
 import org.elasticsearch.spark.rdd.Metadata.ID
 import org.elasticsearch.spark.rdd.Metadata.TTL
@@ -906,6 +907,46 @@ class AbstractScalaEsScalaSpark(prefix: String, readMetadata: jl.Boolean) extend
     } catch {
       case e: EsHadoopIllegalArgumentException => //Expected
     }
+  }
+
+  @Test
+  def testSparkAccumulators() = {
+    def config(metricsPrefix: String): Map[String, String] = {
+      val index = wrapIndex(s"spark-test-accumulators-${metricsPrefix}")
+      val typename = "data"
+      val target = resource(index, typename, version)
+      Map[String, String](
+        ES_RESOURCE_READ -> target,
+        ES_RESOURCE_WRITE -> target,
+        ES_METRICS_PREFIX -> metricsPrefix
+      )
+    }
+
+    val data = Seq(
+      Map("field1" -> "doc1"),
+      Map("field1" -> "doc2"),
+      Map("field1" -> "doc3")
+    )
+    val inputRdd = sc.makeRDD(data)
+
+    inputRdd.saveToEs(config("single-write"))
+
+    val doubleWritesConfig = config("double-write")
+    inputRdd.saveToEs(doubleWritesConfig)
+    inputRdd.saveToEs(doubleWritesConfig)
+
+    val readWriteConfig = config("read-write")
+    inputRdd.saveToEs(readWriteConfig)
+    val outputRdd = sc.esRDD(readWriteConfig)
+
+    import org.elasticsearch.hadoop.mr.Counter._
+    assertEquals(inputRdd.count(), EsSparkAccumulators.get("single-write", DOCS_SENT))
+    assertEquals(inputRdd.count() * 2, EsSparkAccumulators.get("double-write", DOCS_SENT))
+    assertEquals(inputRdd.count(), EsSparkAccumulators.get("read-write", DOCS_SENT))
+    assertEquals(0, EsSparkAccumulators.get("read-write", DOCS_RECEIVED)) // lazy reads before the action count
+    assertEquals(outputRdd.count(), EsSparkAccumulators.get("read-write", DOCS_RECEIVED))
+    assertEquals(outputRdd.count() * 2, EsSparkAccumulators.get("read-write", DOCS_RECEIVED))
+    EsSparkAccumulators.clear()
   }
 
   def wrapIndex(index: String) = {

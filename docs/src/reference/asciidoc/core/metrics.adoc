@@ -1,15 +1,18 @@
 [[metrics]]
 == Hadoop Metrics
 
-The Hadoop system records a set of metric counters for each job that it runs. {eh} extends on that and provides metrics about its activity for each job run by leveraging the Hadoop http://hadoop.apache.org/docs/r{hadoop-docs-v}/api/org/apache/hadoop/mapred/Counters.html[Counters] infrastructure. During each run, {eh} sends statistics from each task instance, as it is running, which get aggregated by the {mr} infrastructure and are available through the standard Hadoop APIs.
+The Hadoop Map Reduce system records a set of metric counters for each job that it runs. {eh} extends on that and provides metrics about its activity for each job run by leveraging the Hadoop http://hadoop.apache.org/docs/r{hadoop-docs-v}/api/org/apache/hadoop/mapred/Counters.html[Counters] infrastructure. During each run, {eh} sends statistics from each task instance, as it is running, which get aggregated by the {mr} infrastructure and are available through the standard Hadoop APIs.
 
-{eh} provides the following counters, available under `org.elasticsearch.hadoop.mr.Counter` enum:
+For Spark, the same principle exists with https://spark.apache.org/docs/latest/rdd-programming-guide.html#accumulators[Accumulators].
 
-.Available counters
+{eh} provides the following counters, available under `org.elasticsearch.hadoop.mr.Counter` enum or the following accumulators available under
+`org.elasticsearch.spark.acc.EsSparkAccumulators` object in function of the framework that you use:
+
+.Available counters and accumulators
 [cols="^,^",options="header"]
 
 |===
-| Counter name | Purpose
+| Name | Purpose
 
 2+h| Data focused
 
@@ -42,7 +45,7 @@ The Hadoop system records a set of metric counters for each job that it runs. {e
 
 |===
 
-One can use the counters programatically, depending on the API used, through http://hadoop.apache.org/docs/r{hadoop-docs-v}/api/index.html?org/apache/hadoop/mapred/Counters.html[mapred] or http://hadoop.apache.org/docs/r{hadoop-docs-v}/api/index.html?org/apache/hadoop/mapreduce/Counter.html[mapreduce]. Whatever the choice, {eh} performs automatic reports without any user intervention. In fact, when using {eh} one will see the stats reported at the end of the job run, for example:
+One can use the counters programmatically, depending on the API used, through http://hadoop.apache.org/docs/r{hadoop-docs-v}/api/index.html?org/apache/hadoop/mapred/Counters.html[mapred] or http://hadoop.apache.org/docs/r{hadoop-docs-v}/api/index.html?org/apache/hadoop/mapreduce/Counter.html[mapreduce]. Whatever the choice, {eh} performs automatic reports without any user intervention. In fact, when using {eh} one will see the stats reported at the end of the job run, for example:
 
 [source, bash]
 ----
@@ -69,3 +72,5 @@ Elasticsearch Hadoop Counters
     Scroll Total Time(ms)=0
 
 ----
+
+Same thing for Spark.

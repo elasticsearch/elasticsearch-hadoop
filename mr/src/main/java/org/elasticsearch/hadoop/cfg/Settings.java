@@ -708,6 +708,10 @@ public abstract class Settings {
         return getProperty(ConfigurationOptions.ES_SECURITY_USER_PROVIDER_CLASS);
     }
 
+    public String getMetricsPrefix() {
+        return getProperty(ES_METRICS_PREFIX, ES_METRICS_PREFIX_DEFAULT);
+    }
+
     public abstract InputStream loadResource(String location);
 
     public abstract Settings copy();

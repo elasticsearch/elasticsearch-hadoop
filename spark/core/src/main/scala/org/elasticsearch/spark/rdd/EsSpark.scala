@@ -32,6 +32,7 @@ import org.elasticsearch.hadoop.cfg.PropertiesSettings
 import org.elasticsearch.hadoop.mr.security.HadoopUserProvider
 import org.elasticsearch.spark.cfg.SparkSettingsManager
 import org.elasticsearch.hadoop.rest.InitializationUtils
+import org.elasticsearch.spark.acc.EsSparkAccumulators
 
 object EsSpark {
 
@@ -94,10 +95,12 @@ object EsSpark {
     if (rdd == null || rdd.partitions.length == 0) {
       return
     }
-    
-    val sparkCfg = new SparkSettingsManager().load(rdd.sparkContext.getConf)
+
+    val sc = rdd.sparkContext
+    val sparkCfg = new SparkSettingsManager().load(sc.getConf)
     val config = new PropertiesSettings().load(sparkCfg.save())
     config.merge(cfg.asJava)
+    EsSparkAccumulators.build(sc, config.getMetricsPrefix)
 
     // Need to discover the EsVersion here before checking if the index exists
     InitializationUtils.setUserProviderIfNotSet(config, classOf[HadoopUserProvider], LOG)

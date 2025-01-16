@@ -31,6 +31,7 @@ import org.elasticsearch.hadoop.cfg.PropertiesSettings
 import org.elasticsearch.hadoop.mr.security.HadoopUserProvider
 import org.elasticsearch.hadoop.rest.InitializationUtils
 import org.elasticsearch.hadoop.util.ObjectUtils
+import org.elasticsearch.spark.acc.EsSparkAccumulators
 import org.elasticsearch.spark.cfg.SparkSettingsManager
 
 import scala.collection.JavaConverters.mapAsJavaMapConverter
@@ -94,6 +95,7 @@ object EsSparkSQL {
       val sparkCfg = new SparkSettingsManager().load(sparkCtx.getConf)
       val esCfg = new PropertiesSettings().load(sparkCfg.save())
       esCfg.merge(cfg.asJava)
+      EsSparkAccumulators.build(sparkCtx, esCfg.getMetricsPrefix)
 
       // Need to discover ES Version before checking index existence
       InitializationUtils.setUserProviderIfNotSet(esCfg, classOf[HadoopUserProvider], LOG)
